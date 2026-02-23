@@ -21,7 +21,7 @@ app = Flask(__name__, static_folder='static')
 
 @app.route('/')
 def index():
-    return app.send_static_file('web_app_enhanced.html')
+    return app.send_static_file('page_2.html')
 
 # Add CORS headers
 @app.after_request
