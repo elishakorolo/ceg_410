@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Structural Analysis - CEG 410</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #f5f5f7;
+            overflow-x: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #171B40 0%, #2d3561 100%);
+            color: white;
+            padding: 20px 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .tabs-header {
+            display: flex;
+            gap: 10px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            padding: 10px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: #171B40;
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 400px;
+            background: white;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+            padding: 20px;
+        }
+
+        .sidebar h2 {
+            color: #171B40;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+
+        /* COLLAPSIBLE SECTIONS */
+        .collapsible-section {
+            margin-bottom: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .collapsible-header {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s;
+        }
+
+        .collapsible-header:hover {
+            background: #e9ecef;
+        }
+
+        .collapsible-header h3 {
+            color: #171B40;
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .collapsible-icon {
+            font-size: 18px;
+            transition: transform 0.3s;
+        }
+
+        .collapsible-section.collapsed .collapsible-icon {
+            transform: rotate(-90deg);
+        }
+
+        .collapsible-content {
+            padding: 15px;
+            background: white;
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .collapsible-section.collapsed .collapsible-content {
+            max-height: 0;
+            padding: 0 15px;
+        }
+
+        .sidebar h3 {
+            color: #171B40;
+            margin: 25px 0 15px 0;
+            font-size: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        /* MAIN CONTENT */
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .visualization-area {
+            flex: 1;
+            background: white;
+            margin: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 20px;
+            overflow: auto;
+        }
+
+        .viz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .viz-header h2 {
+            color: #171B40;
+            font-size: 24px;
+        }
+
+        #structure-canvas, #frame-canvas {
+            width: 100%;
+            height: 300px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+
+        /* FORMS */
+        .form-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 13px;
+            color: #333;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* BUTTONS */
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-add {
+            background: #28a745;
+            color: white;
+            margin-top: 10px;
+        }
+
+        .btn-add:hover {
+            background: #218838;
+        }
+
+        .btn-clear {
+            background: #dc3545;
+            color: white;
+            margin-top: 10px;
+        }
+
+        .btn-clear:hover {
+            background: #c82333;
+        }
+
+        .btn-analyze {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 16px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* ITEM LISTS */
+        .item-list {
+            margin-top: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .item {
+            background: white;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #667eea;
+            font-size: 13px;
+        }
+
+        .item button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .item button:hover {
+            background: #c82333;
+        }
+
+        /* RESULTS */
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .metric-card h4 {
+            font-size: 13px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .metric-card .value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .metric-card .unit {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .design-detail-card {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+
+        .design-detail-card h3 {
+            color: #171B40;
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .detail-value {
+            color: #171B40;
+            font-weight: 600;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        table th, table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #171B40;
+        }
+
+        .diagram-section {
+            margin: 30px 0;
+        }
+
+        .diagram-section h3 {
+            color: #171B40;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .diagram-section img {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px;
+            border: 1px solid #f5c6cb;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: flex;
+            height: 100%;
+        }
+
+        .design-checks {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .design-checks h4 {
+            color: #2e7d32;
+            margin-bottom: 10px;
+        }
+
+        .check-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #c8e6c9;
+        }
+
+        .check-item:last-child {
+            border-bottom: none;
+        }
+
+        .check-pass {
+            color: #4caf50;
+            font-weight: 600;
+        }
+
+        .check-fail {
+            color: #f44336;
+            font-weight: 600;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">Structural Analysis II (CEG 410) - Group 4</div>
+            <div class="tabs-header">
+                <button class="tab-btn active" onclick="switchMainTab('beam')">Beam Analysis</button>
+                <button class="tab-btn" onclick="switchMainTab('frame')">Frame Analysis</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- BEAM ANALYSIS -->
+        <div id="beam-content" class="tab-content active">
+            <!-- SIDEBAR -->
+            <div class="sidebar scrollbar-custom">
+                <h2> Beam Configuration</h2>
+                
+                <!-- Basic Properties - Collapsible -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection(this)">
+                        <h3>Basic Properties</h3>
+                        <span class="collapsible-icon">▼</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="form-group">
+                            <label>Young's Modulus E (GPa)</label>
+                            <input type="number" id="beam-E" value="200" step="10" onchange="updateVisualization()">
+                        </div>
+                        <div class="form-group">
+                            <label>Base Moment of Inertia I (×10⁻⁶ m⁴)</label>
+                            <input type="number" id="beam-I" value="1" step="0.1" onchange="updateVisualization()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nodes - Collapsible -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection(this)">
+                        <h3>Nodes & Supports</h3>
+                        <span class="collapsible-icon">▼</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Position (m)</label>
+                                <input type="number" id="node-x" step="0.1" placeholder="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Support Type</label>
+                                <select id="node-type">
+                                    <option value="fixed">Fixed</option>
+                                    <option value="pinned">Pinned</option>
+                                    <option value="roller">Roller</option>
+                                    <option value="overhanging">Overhanging</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn btn-add" onclick="addNode()">+ Add Node</button>
+                        <div id="nodes-list" class="item-list"></div>
+                    </div>
+                </div>
+
+                <!-- Span I Multipliers - Collapsible -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection(this)">
+                        <h3>Span I Multipliers</h3>
+                        <span class="collapsible-icon">▼</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <p style="font-size: 12px; color: #666; margin-bottom: 10px;">
+                            Set I multiplier for each span (default: 1.0)
+                        </p>
+                        <div id="span-multipliers-list" class="item-list"></div>
+                    </div>
+                </div>
+
+                <!-- Loads - Collapsible -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection(this)">
+                        <h3>Loads</h3>
+                        <span class="collapsible-icon">▼</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="form-group">
+                            <label>Load Type</label>
+                            <select id="load-type" onchange="updateLoadInputs()">
+                                <option value="Point">Point Load</option>
+                                <option value="UDL">Uniformly Distributed Load (UDL)</option>
+                                <option value="VDL">Varying Distributed Load (VDL)</option>
+                            </select>
+                        </div>
+                        <div id="load-inputs">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Magnitude (kN)</label>
+                                    <input type="number" id="load-mag" step="0.1" placeholder="10">
+                                </div>
+                                <div class="form-group">
+                                    <label>Position (m)</label>
+                                    <input type="number" id="load-start" step="0.1" placeholder="2.5">
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-add" onclick="addLoad()">+ Add Load</button>
+                        <div id="loads-list" class="item-list"></div>
+                    </div>
+                </div>
+
+                <!-- Design Parameters - Collapsible -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection(this)">
+                        <h3>Design Parameters</h3>
+                        <span class="collapsible-icon">▼</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="form-group">
+                            <label>Material</label>
+                            <select id="design-material">
+                                <option value="concrete">Concrete</option>
+                                <option value="steel">Steel</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Design Code</label>
+                            <select id="design-code">
+                                <option value="BS_8110">BS 8110:1997 (Nigerian Standard)</option>
+                                <option value="BS_EN_1992">BS EN 1992 (Eurocode 2)</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>fck (MPa)</label>
+                                <input type="number" id="design-fck" value="25" step="5">
+                            </div>
+                            <div class="form-group">
+                                <label>fy (MPa)</label>
+                                <input type="number" id="design-fy" value="415" step="5">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Width (mm)</label>
+                                <input type="number" id="design-width" value="300" step="50">
+                            </div>
+                            <div class="form-group">
+                                <label>Cover (mm)</label>
+                                <input type="number" id="design-cover" value="40" step="5">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Bar Diameter (mm)</label>
+                            <input type="number" id="design-bar-dia" value="16" step="2">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-analyze" onclick="analyzeBeam()">Analyze</button>
+                    <button class="btn btn-clear" onclick="clearAllBeam()">Clear All</button>
+                </div>
+            </div>
+
+            <!-- MAIN CONTENT -->
+            <div class="content-area">
+                <div class="visualization-area scrollbar-custom">
+                    <div class="viz-header">
+                        <h2>Live Structure Visualization</h2>
+                        <span style="color: #666; font-size: 14px;">Updates as you add elements</span>
+                    </div>
+                    
+                    <canvas id="structure-canvas"></canvas>
+
+                    <div class="loading" id="beam-loading">
+                        <div class="spinner"></div>
+                        <p>Analyzing structure and performing design checks...</p>
+                    </div>
+
+                    <div id="beam-results"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FRAME ANALYSIS -->
+        <div id="frame-content" class="tab-content">
+            <!-- SIDEBAR -->
+            <div class="sidebar scrollbar-custom">
+                <h2> Frame Configuration</h2>
+                
+                <!-- Basic Properties - Collapsible -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection(this)">
+                        <h3>Basic Properties</h3>
+                        <span class="collapsible-icon">▼</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="form-group">
+                            <label>Young's Modulus E (GPa)</label>
+                            <input type="number" id="frame-E" value="200" step="10">
+                        </div>
+                        <div class="form-group">
+                            <label>Base Moment of Inertia I (×10⁻⁶ m⁴)</label>
+                            <input type="number" id="frame-I" value="1" step="0.1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nodes - Collapsible -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection(this)">
+                        <h3>Nodes & Supports</h3>
+                        <span class="collapsible-icon">▼</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>X (m)</label>
+                                <input type="number" id="frame-node-x" step="0.1" placeholder="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Y (m)</label>
+                                <input type="number" id="frame-node-y" step="0.1" placeholder="0">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Support Type</label>
+                            <select id="frame-node-type">
+                                <option value="fixed">Fixed</option>
+                                <option value="pinned">Pinned</option>
+                                <option value="roller">Roller</option>
+                                <option value="free">Free</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-add" onclick="addFrameNode()">+ Add Node</button>
+                        <div id="frame-nodes-list" class="item-list"></div>
+                    </div>
+                </div>
+
+                <!-- Members - Collapsible -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection(this)">
+                        <h3>Members</h3>
+                        <span class="collapsible-icon">▼</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Node i (letter)</label>
+                                <input type="text" id="frame-member-i" placeholder="A" maxlength="1">
+                            </div>
+                            <div class="form-group">
+                                <label>Node j (letter)</label>
+                                <input type="text" id="frame-member-j" placeholder="B" maxlength="1">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>I Multiplier</label>
+                            <input type="number" id="frame-member-I" value="1" step="0.1">
+                        </div>
+                        <button class="btn btn-add" onclick="addFrameMember()">+ Add Member</button>
+                        <div id="frame-members-list" class="item-list"></div>
+                    </div>
+                </div>
+
+                <!-- Loads - Collapsible -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection(this)">
+                        <h3>Member Loads</h3>
+                        <span class="collapsible-icon">▼</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="form-group">
+                            <label>Member (e.g., AB)</label>
+                            <input type="text" id="frame-load-member" placeholder="AB" maxlength="2">
+                        </div>
+                        <div class="form-group">
+                            <label>Load Type</label>
+                            <select id="frame-load-type">
+                                <option value="Point">Point Load</option>
+                                <option value="UDL">UDL</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Magnitude (kN)</label>
+                                <input type="number" id="frame-load-mag" step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label>Position (m)</label>
+                                <input type="number" id="frame-load-pos" step="0.1">
+                            </div>
+                        </div>
+                        <button class="btn btn-add" onclick="addFrameLoad()">+ Add Load</button>
+                        <div id="frame-loads-list" class="item-list"></div>
+                    </div>
+                </div>
+
+                <!-- Frame Analysis Options -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection(this)">
+                        <h3>Analysis Options</h3>
+                        <span class="collapsible-icon">▼</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="frame-can-sway" style="width: auto;">
+                                <span>Frame can sway (unbraced)</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Design Parameters - Collapsible -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection(this)">
+                        <h3>Design Parameters</h3>
+                        <span class="collapsible-icon">▼</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="form-group">
+                            <label>Material</label>
+                            <select id="frame-design-material">
+                                <option value="concrete">Concrete</option>
+                                <option value="steel">Steel</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Design Code</label>
+                            <select id="frame-design-code">
+                                <option value="BS_8110">BS 8110:1997 (Nigerian Standard)</option>
+                                <option value="BS_EN_1992">BS EN 1992 (Eurocode 2)</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>fck (MPa)</label>
+                                <input type="number" id="frame-design-fck" value="25" step="5">
+                            </div>
+                            <div class="form-group">
+                                <label>fy (MPa)</label>
+                                <input type="number" id="frame-design-fy" value="415" step="5">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Beam Width (mm)</label>
+                                <input type="number" id="frame-beam-width" value="300" step="50">
+                            </div>
+                            <div class="form-group">
+                                <label>Column Size (mm)</label>
+                                <input type="number" id="frame-column-size" value="300" step="50">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Cover (mm)</label>
+                                <input type="number" id="frame-design-cover" value="40" step="5">
+                            </div>
+                            <div class="form-group">
+                                <label>Bar Diameter (mm)</label>
+                                <input type="number" id="frame-design-bar-dia" value="16" step="2">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-analyze" onclick="analyzeFrame()">Analyze</button>
+                    <button class="btn btn-clear" onclick="clearAllFrame()">Clear All</button>
+                </div>
+            </div>
+
+            <!-- MAIN CONTENT -->
+            <div class="content-area">
+                <div class="visualization-area scrollbar-custom">
+                    <div class="viz-header">
+                        <h2>Frame Visualization</h2>
+                        <span style="color: #666; font-size: 14px;">2D frame structure</span>
+                    </div>
+                    
+                    <canvas id="frame-canvas"></canvas>
+
+                    <div class="loading" id="frame-loading">
+                        <div class="spinner"></div>
+                        <p>Analyzing frame structure...</p>
+                    </div>
+
+                    <div id="frame-results"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app_fixed.js"></script>
+</body>
+</html>
