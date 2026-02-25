@@ -726,7 +726,7 @@ function updateFrameVisualization() {
         ctx.fillText(`${numberToLetter(member.node_i)}${numberToLetter(member.node_j)}`, midX, midY - 5);
     });
 
-    // Draw loads
+    // Draw loads — arrows always perpendicular to the member they act on
     frameLoads.forEach(load => {
         const member = frameMembers[load.member];
         if (!member) return;
@@ -734,50 +734,87 @@ function updateFrameVisualization() {
         const nodeJ = frameNodes[member.node_j];
         const dx = nodeJ.x - nodeI.x;
         const dy = nodeJ.y - nodeI.y;
-        const L = Math.sqrt(dx*dx + dy*dy);
+        const L = Math.sqrt(dx * dx + dy * dy);
+
+        // Perpendicular unit vector in canvas space.
+        // Canvas: toCanvasX maps x→right, toCanvasY maps y→up-to-down (flipped).
+        // Member unit vector in canvas: (dx/L, -dy/L).
+        // 90° CCW rotation of (a,b) → (-b, a), so perp = (dy/L, dx/L).
+        // This gives: horizontal beam → perp=(0,1) = downward ✓
+        //             vertical column → perp=(1,0) = rightward ✓
+        const perpX = dy / L;
+        const perpY = dx / L;
+        const arrowLength = 45;
+        const arrowSize = 8;
+
         if (load.type === 'point' || load.type === 'Point') {
             const ratio = (load.position || load.pos || 0) / L;
             const loadX = toCanvasX(nodeI.x + dx * ratio);
             const loadY = toCanvasY(nodeI.y + dy * ratio);
-            
-            // Always draw loads pointing downward (gravity direction)
-            const arrowLength = 50;
-            const arrowStartX = loadX;
-            const arrowStartY = loadY - arrowLength;  // Start above the member
-            
+
+            // Arrow starts away from member in perpendicular direction, tip at member
+            const startX = loadX - perpX * arrowLength;
+            const startY = loadY - perpY * arrowLength;
+
             ctx.strokeStyle = '#e74c3c'; ctx.fillStyle = '#e74c3c'; ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.moveTo(arrowStartX, arrowStartY); ctx.lineTo(loadX, loadY); ctx.stroke();
-            
-            // Arrowhead pointing down
-            const arrowSize = 8;
+            ctx.beginPath(); ctx.moveTo(startX, startY); ctx.lineTo(loadX, loadY); ctx.stroke();
+
+            // Arrowhead at tip, pointing along perp direction toward member
             ctx.beginPath();
             ctx.moveTo(loadX, loadY);
-            ctx.lineTo(loadX - arrowSize, loadY - arrowSize);
-            ctx.lineTo(loadX + arrowSize, loadY - arrowSize);
+            ctx.lineTo(loadX - perpX * arrowSize + perpY * (arrowSize / 2),
+                       loadY - perpY * arrowSize - perpX * (arrowSize / 2));
+            ctx.lineTo(loadX - perpX * arrowSize - perpY * (arrowSize / 2),
+                       loadY - perpY * arrowSize + perpX * (arrowSize / 2));
             ctx.closePath(); ctx.fill();
-            
+
             ctx.fillStyle = '#000'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center';
-            ctx.fillText(`${load.magnitude || load.mag} kN`, arrowStartX, arrowStartY - 5);
+            ctx.fillText(`${load.magnitude || load.mag} kN`,
+                startX - perpX * 5, startY - perpY * 5 - 5);
+
         } else if (load.type === 'udl' || load.type === 'UDL') {
-            const arrowLength = 40;
             const numArrows = Math.max(4, Math.floor(L * scale / 50));
             ctx.strokeStyle = '#3498db'; ctx.fillStyle = '#3498db'; ctx.lineWidth = 2;
+
             const points = [];
             for (let i = 0; i <= numArrows; i++) {
-                const ratio = i / numArrows;
-                points.push({ x: toCanvasX(nodeI.x + dx * ratio), y: toCanvasY(nodeI.y + dy * ratio) });
+                const r = i / numArrows;
+                points.push({
+                    x: toCanvasX(nodeI.x + dx * r),
+                    y: toCanvasY(nodeI.y + dy * r)
+                });
             }
+
+            // Draw each arrow shaft + arrowhead
             for (let i = 0; i <= numArrows; i++) {
                 const x = points[i].x, y = points[i].y;
-                ctx.beginPath(); ctx.moveTo(x, y - arrowLength); ctx.lineTo(x, y); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 4, y - 8); ctx.lineTo(x + 4, y - 8); ctx.closePath(); ctx.fill();
+                const sx = x - perpX * arrowLength;
+                const sy = y - perpY * arrowLength;
+                ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(x, y); ctx.stroke();
+                // Arrowhead
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x - perpX * arrowSize + perpY * (arrowSize / 2),
+                           y - perpY * arrowSize - perpX * (arrowSize / 2));
+                ctx.lineTo(x - perpX * arrowSize - perpY * (arrowSize / 2),
+                           y - perpY * arrowSize + perpX * (arrowSize / 2));
+                ctx.closePath(); ctx.fill();
             }
-            ctx.beginPath(); ctx.moveTo(points[0].x, points[0].y - arrowLength);
-            for (let i = 1; i <= numArrows; i++) ctx.lineTo(points[i].x, points[i].y - arrowLength);
+
+            // Connecting baseline along arrow starts
+            ctx.beginPath();
+            ctx.moveTo(points[0].x - perpX * arrowLength, points[0].y - perpY * arrowLength);
+            for (let i = 1; i <= numArrows; i++) {
+                ctx.lineTo(points[i].x - perpX * arrowLength, points[i].y - perpY * arrowLength);
+            }
             ctx.stroke();
-            ctx.fillStyle = '#000'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center';
+
+            // Label at midpoint
             const midIdx = Math.floor(numArrows / 2);
-            ctx.fillText(`${load.magnitude || load.mag} kN/m`, points[midIdx].x, points[midIdx].y - arrowLength - 15);
+            ctx.fillStyle = '#000'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center';
+            ctx.fillText(`${load.magnitude || load.mag} kN/m`,
+                points[midIdx].x - perpX * (arrowLength + 15),
+                points[midIdx].y - perpY * (arrowLength + 15) - 3);
         }
     });
 
