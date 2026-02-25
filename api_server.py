@@ -21,7 +21,7 @@ app = Flask(__name__, static_folder='static')
 
 @app.route('/')
 def index():
-    return app.send_static_file('page_2.html')
+    return app.send_static_file('web_app_enhanced.html')
 
 # Add CORS headers
 @app.after_request
@@ -419,21 +419,11 @@ def calculate_fems(member):
         elif load.type == 'vdl':
             w1 = load.magnitude
             w2 = load.magnitude_end
-            # Decompose into rectangular and triangular
-            w_rect = min(w1, w2)
-            w_tri = abs(w2 - w1)
-            
-            # Rectangular part
-            fem_ab += -(w_rect * L**2) / 12.0
-            fem_ba += (w_rect * L**2) / 12.0
-            
-            # Triangular part
-            if w2 > w1:
-                fem_ab += -(w_tri * L**2) / 20.0
-                fem_ba += (w_tri * L**2) / 30.0
-            else:
-                fem_ab += -(w_tri * L**2) / 30.0
-                fem_ba += (w_tri * L**2) / 20.0
+            # Exact integrated formula (derived from first principles):
+            # FEM_AB = -(w1/20 + w2/30)*L^2
+            # FEM_BA = +(w1/30 + w2/20)*L^2
+            fem_ab += -(w1 / 20.0 + w2 / 30.0) * L**2
+            fem_ba += (w1 / 30.0 + w2 / 20.0) * L**2
     
     member.fem_ab = fem_ab
     member.fem_ba = fem_ba
@@ -665,16 +655,11 @@ def frame_calculate_fems(member):
         elif load.type == 'vdl':
             w1 = load.magnitude
             w2 = load.magnitude_end
-            w_rect = min(w1, w2)
-            w_tri = abs(w2 - w1)
-            fem_ab += -(w_rect * L**2) / 12.0
-            fem_ba += (w_rect * L**2) / 12.0
-            if w2 > w1:
-                fem_ab += -(w_tri * L**2) / 20.0
-                fem_ba += (w_tri * L**2) / 30.0
-            else:
-                fem_ab += -(w_tri * L**2) / 30.0
-                fem_ba += (w_tri * L**2) / 20.0
+            # Exact integrated formula:
+            # FEM_AB = -(w1/20 + w2/30)*L^2
+            # FEM_BA = +(w1/30 + w2/20)*L^2
+            fem_ab += -(w1 / 20.0 + w2 / 30.0) * L**2
+            fem_ba += (w1 / 30.0 + w2 / 20.0) * L**2
     member.fem_ab = fem_ab
     member.fem_ba = fem_ba
 
